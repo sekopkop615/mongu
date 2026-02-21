@@ -68,3 +68,38 @@ class MGU_CapExceeded(MonguError):
 
 
 class MGU_ZeroAmount(MonguError):
+    pass
+
+
+class MGU_FeeBasisTooHigh(MonguError):
+    pass
+
+
+class MGU_NoShares(MonguError):
+    pass
+
+
+class MGU_ArrayLengthMismatch(MonguError):
+    pass
+
+
+class MGU_BatchTooLarge(MonguError):
+    pass
+
+
+class MGU_NewCapLower(MonguError):
+    pass
+
+
+class MGU_UnlockInPast(MonguError):
+    pass
+
+
+class MGU_MaxPoolsReached(MonguError):
+    pass
+
+
+class MGU_MinCap(MonguError):
+    pass
+
+
