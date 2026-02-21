@@ -33,3 +33,38 @@ MGU_VESTING_TAG = hashlib.sha256(b"MonguLaunchpad.MGU_VESTING_TAG").hexdigest()
 class MonguError(Exception):
     """Base error for Mongu engine."""
     pass
+
+
+class MGU_ZeroPoolId(MonguError):
+    pass
+
+
+class MGU_ZeroAddress(MonguError):
+    pass
+
+
+class MGU_NotPadKeeper(MonguError):
+    pass
+
+
+class MGU_PoolAlreadyExists(MonguError):
+    pass
+
+
+class MGU_PoolNotFound(MonguError):
+    pass
+
+
+class MGU_PoolNotUnlocked(MonguError):
+    pass
+
+
+class MGU_PoolStillLocked(MonguError):
+    pass
+
+
+class MGU_CapExceeded(MonguError):
+    pass
+
+
+class MGU_ZeroAmount(MonguError):
