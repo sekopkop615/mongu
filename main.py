@@ -390,3 +390,52 @@ class MonguLaunchpadEngine:
 # ---------------------------------------------------------------------------
 # MonguLaunchpadMath — mirror of Solidity library
 # ---------------------------------------------------------------------------
+
+def mul_div(a: int, b: int, denom: int) -> int:
+    if denom == 0:
+        return 0
+    return (a * b) // denom
+
+
+def basis_points_of(amount: int, basis_points: int, basis_denom: int = MGU_BASIS_DENOM) -> int:
+    return (amount * basis_points) // basis_denom
+
+
+def share_of(total_reward: int, my_share: int, total_deposited: int) -> int:
+    if total_deposited == 0:
+        return 0
+    return (total_reward * my_share) // total_deposited
+
+
+def fee_from_reward(reward_wei: int, basis_points: int, basis_denom: int = MGU_BASIS_DENOM) -> int:
+    return (reward_wei * basis_points) // basis_denom
+
+
+def net_after_fee(reward_wei: int, basis_points: int, basis_denom: int = MGU_BASIS_DENOM) -> int:
+    fee = (reward_wei * basis_points) // basis_denom
+    return reward_wei - fee
+
+
+def fill_ratio_basis_points(deposited: int, cap: int) -> int:
+    if cap == 0:
+        return 0
+    return (deposited * MGU_BASIS_DENOM) // cap
+
+
+# ---------------------------------------------------------------------------
+# Pool ID and label helpers (keccak256-style for compatibility)
+# ---------------------------------------------------------------------------
+
+def pool_id_from_name(name: str) -> str:
+    return hashlib.sha256(name.encode()).hexdigest()
+
+
+def label_hash_from_string(s: str) -> str:
+    return hashlib.sha256(s.encode()).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Random address and hex generation (for tests / fixtures; never reuse on mainnet)
+# ---------------------------------------------------------------------------
+
+def random_hex_bytes(n: int = 32) -> str:
