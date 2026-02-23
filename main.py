@@ -635,3 +635,52 @@ def validate_wei_amount(amount: int) -> bool:
 
 # ---------------------------------------------------------------------------
 # Simulation runner — multi-step scenarios
+# ---------------------------------------------------------------------------
+
+class SimulationStep:
+    def __init__(self, name: str, block: int, action: str, **kwargs: Any):
+        self.name = name
+        self.block = block
+        self.action = action
+        self.kwargs = kwargs
+
+    def run(self, engine: MonguLaunchpadEngine) -> Any:
+        engine.set_block(self.block)
+        if self.action == "create_pool":
+            engine.create_pool(
+                self.kwargs["pool_id"],
+                self.kwargs["label_hash"],
+                self.kwargs["cap_wei"],
+                self.kwargs["unlock_block"],
+                self.kwargs["caller"],
+            )
+            return None
+        if self.action == "ape_in":
+            engine.ape_in(
+                self.kwargs["pool_id"],
+                self.kwargs["fren"],
+                self.kwargs["amount_wei"],
+            )
+            return None
+        if self.action == "fund_pool":
+            engine.fund_pool(self.kwargs["pool_id"], self.kwargs["amount_wei"])
+            return None
+        if self.action == "unlock_pool":
+            engine.unlock_pool(self.kwargs["pool_id"], self.kwargs["caller"])
+            return None
+        if self.action == "claim":
+            return engine.claim(self.kwargs["pool_id"], self.kwargs["fren"])
+        if self.action == "set_fee":
+            engine.set_protocol_fee_basis(self.kwargs["basis_points"], self.kwargs["caller"])
+            return None
+        if self.action == "raise_cap":
+            engine.raise_pool_cap(self.kwargs["pool_id"], self.kwargs["new_cap_wei"], self.kwargs["caller"])
+            return None
+        raise ValueError("Unknown action: " + self.action)
+
+
+def run_simulation(engine: MonguLaunchpadEngine, steps: List[SimulationStep]) -> List[Any]:
+    results = []
+    for step in steps:
+        try:
+            r = step.run(engine)
