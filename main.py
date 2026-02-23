@@ -243,3 +243,52 @@ class MonguLaunchpadEngine:
 
     def ape_in(self, pool_id: str, fren: str, amount_wei: int) -> None:
         if self._paused:
+            raise MonguError("MGU_Paused")
+        if amount_wei == 0:
+            raise MGU_ZeroAmount()
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        p = self._pools[pool_id]
+        if p.unlocked:
+            raise MGU_PoolStillLocked()
+        if p.total_deposited_wei + amount_wei > p.cap_wei:
+            raise MGU_CapExceeded()
+        key = (pool_id, fren)
+        new_total = self._fren_share_wei.get(key, 0) + amount_wei
+        if p.max_per_fren_wei != 2**256 - 1 and new_total > p.max_per_fren_wei:
+            raise MGU_MaxPerFrenExceeded()
+        self._fren_share_wei[key] = new_total
+        if fren not in self._pool_frens[pool_id]:
+            self._pool_frens[pool_id].append(fren)
+            self._fren_pool_ids.setdefault(fren, []).append(pool_id)
+        p.total_deposited_wei += amount_wei
+        self._total_deposited_across_pools += amount_wei
+
+    def fund_pool(self, pool_id: str, amount_wei: int) -> None:
+        if amount_wei == 0:
+            raise MGU_ZeroAmount()
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        self._pools[pool_id].total_reward_wei += amount_wei
+        self._total_reward_across_pools += amount_wei
+
+    def unlock_pool(self, pool_id: str, caller: str) -> None:
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        p = self._pools[pool_id]
+        if p.unlocked:
+            raise MGU_AlreadyUnlocked()
+        if self._current_block < p.unlock_block:
+            raise MGU_PoolNotUnlocked()
+        if caller != p.creator and caller != self.pad_keeper:
+            raise MGU_NotPoolCreator()
+        p.unlocked = True
+
+    def pending_reward(self, pool_id: str, fren: str) -> int:
+        if pool_id not in self._pools:
+            return 0
+        p = self._pools[pool_id]
+        if not p.unlocked:
+            return 0
+        share = self._fren_share_wei.get((pool_id, fren), 0)
+        if share == 0:
