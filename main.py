@@ -684,3 +684,52 @@ def run_simulation(engine: MonguLaunchpadEngine, steps: List[SimulationStep]) ->
     for step in steps:
         try:
             r = step.run(engine)
+            results.append((step.name, r))
+        except MonguError as e:
+            results.append((step.name, {"error": str(e)}))
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Event log simulation (mirror Solidity events for indexers)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MonguEvent:
+    name: str
+    block: int
+    payload: Dict[str, Any]
+
+
+def emit_pool_created(block: int, pool_id: str, creator: str, label_hash: str, cap_wei: int, unlock_block: int) -> MonguEvent:
+    return MonguEvent(
+        "MonguPoolCreated",
+        block,
+        {"pool_id": pool_id, "creator": creator, "label_hash": label_hash, "cap_wei": cap_wei, "unlock_block": unlock_block},
+    )
+
+
+def emit_fren_ape_in(block: int, pool_id: str, fren: str, amount_wei: int, share_wei: int) -> MonguEvent:
+    return MonguEvent("FrenApeIn", block, {"pool_id": pool_id, "fren": fren, "amount_wei": amount_wei, "share_wei": share_wei})
+
+
+def emit_pool_funded(block: int, pool_id: str, amount_wei: int) -> MonguEvent:
+    return MonguEvent("MonguPoolFunded", block, {"pool_id": pool_id, "amount_wei": amount_wei})
+
+
+def emit_fren_claimed(block: int, pool_id: str, fren: str, amount_wei: int) -> MonguEvent:
+    return MonguEvent("FrenClaimed", block, {"pool_id": pool_id, "fren": fren, "amount_wei": amount_wei})
+
+
+def emit_pool_unlocked(block: int, pool_id: str) -> MonguEvent:
+    return MonguEvent("PoolUnlocked", block, {"pool_id": pool_id})
+
+
+# ---------------------------------------------------------------------------
+# Pagination helpers
+# ---------------------------------------------------------------------------
+
+def paginate_pool_ids(engine: MonguLaunchpadEngine, offset: int, limit: int) -> List[str]:
+    ids = engine.get_pool_ids()
+    if offset >= len(ids):
+        return []
