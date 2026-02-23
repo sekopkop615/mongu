@@ -439,3 +439,52 @@ def label_hash_from_string(s: str) -> str:
 # ---------------------------------------------------------------------------
 
 def random_hex_bytes(n: int = 32) -> str:
+    return secrets.token_hex(n)
+
+
+def random_address_like() -> str:
+    return "0x" + secrets.token_hex(20)
+
+
+# ---------------------------------------------------------------------------
+# Global stats view
+# ---------------------------------------------------------------------------
+
+def get_global_stats(engine: MonguLaunchpadEngine) -> Dict[str, Any]:
+    return {
+        "total_pools": len(engine.get_pool_ids()),
+        "total_deposited_wei": engine.total_deposited_across_pools(),
+        "total_reward_wei": engine.total_reward_across_pools(),
+        "treasury_balance": engine.treasury_balance(),
+        "current_block": engine.get_block(),
+        "protocol_fee_basis_points": engine.protocol_fee_basis_points,
+        "paused": engine.is_paused(),
+    }
+
+
+def get_fren_stats(engine: MonguLaunchpadEngine, fren: str) -> Dict[str, Any]:
+    pool_ids = engine.get_fren_pool_ids(fren)
+    total_deposited = 0
+    total_claimed = 0
+    for pid in pool_ids:
+        share, claimed = engine.get_fren_share(pid, fren)
+        total_deposited += share
+        total_claimed += claimed
+    total_pending = 0
+    for pid in pool_ids:
+        total_pending += engine.pending_reward(pid, fren)
+    return {
+        "pool_count": len(pool_ids),
+        "total_deposited_wei": total_deposited,
+        "total_claimed_wei": total_claimed,
+        "total_pending_wei": total_pending,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Batch operations (mirror Solidity batch limits)
+# ---------------------------------------------------------------------------
+
+def ape_in_batch(
+    engine: MonguLaunchpadEngine,
+    pool_id: str,
