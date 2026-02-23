@@ -145,3 +145,52 @@ class PoolInfo:
     exists: bool
     vesting_phases: List[VestingPhase] = field(default_factory=list)
 
+    def remaining_cap(self) -> int:
+        if self.total_deposited_wei >= self.cap_wei:
+            return 0
+        return self.cap_wei - self.total_deposited_wei
+
+    def fill_basis_points(self) -> int:
+        if self.cap_wei == 0:
+            return 0
+        return (self.total_deposited_wei * MGU_BASIS_DENOM) // self.cap_wei
+
+    def is_full(self) -> bool:
+        return self.total_deposited_wei >= self.cap_wei
+
+
+# ---------------------------------------------------------------------------
+# MonguLaunchpadEngine — in-memory simulator
+# ---------------------------------------------------------------------------
+
+class MonguLaunchpadEngine:
+    """
+    In-memory engine that mirrors MonguLaunchpad.sol logic.
+    Used for testing, scripting, and AlphaMong backend simulation.
+    """
+
+    def __init__(
+        self,
+        pad_keeper: str,
+        treasury: str,
+        deploy_block: int = 0,
+        protocol_fee_basis_points: int = 250,
+    ):
+        if not pad_keeper:
+            raise MGU_ZeroAddress()
+        if not treasury:
+            raise MGU_ZeroAddress()
+        if protocol_fee_basis_points > MGU_MAX_FEE_BASIS:
+            raise MGU_FeeBasisTooHigh()
+        self.pad_keeper = pad_keeper
+        self.treasury = treasury
+        self.deploy_block = deploy_block
+        self.protocol_fee_basis_points = protocol_fee_basis_points
+        self._current_block = deploy_block
+        self._pools: Dict[str, PoolInfo] = {}
+        self._pool_ids: List[str] = []
+        self._fren_share_wei: Dict[Tuple[str, str], int] = {}
+        self._fren_claimed_wei: Dict[Tuple[str, str], int] = {}
+        self._pool_frens: Dict[str, List[str]] = {}
+        self._fren_pool_ids: Dict[str, List[str]] = {}
+        self._treasury_balance = 0
