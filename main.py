@@ -537,3 +537,52 @@ def main() -> None:
     treasury = "0x" + secrets.token_hex(20)
     engine = MonguLaunchpadEngine(
         pad_keeper=pad_keeper,
+        treasury=treasury,
+        deploy_block=1000,
+        protocol_fee_basis_points=250,
+    )
+    engine.set_block(1000)
+    pool_id = pool_id_from_name("mongu_fren_pool_1")
+    engine.create_pool(pool_id, label_hash_from_string("Mongu Fren Pool"), 10**18, 2000, pad_keeper)
+    fren1 = "0x" + secrets.token_hex(20)
+    fren2 = "0x" + secrets.token_hex(20)
+    engine.ape_in(pool_id, fren1, 5 * 10**17)
+    engine.ape_in(pool_id, fren2, 3 * 10**17)
+    engine.fund_pool(pool_id, 2 * 10**17)
+    engine.set_block(2000)
+    engine.unlock_pool(pool_id, pad_keeper)
+    c1 = engine.claim(pool_id, fren1)
+    c2 = engine.claim(pool_id, fren2)
+    print("Mongu launchpad engine run OK.")
+    print("Fren1 claimed:", c1, "Fren2 claimed:", c2)
+    print("Global stats:", get_global_stats(engine))
+
+
+# ---------------------------------------------------------------------------
+# Serialization / API payloads
+# ---------------------------------------------------------------------------
+
+def pool_info_to_dict(p: PoolInfo) -> Dict[str, Any]:
+    return {
+        "pool_id": p.pool_id,
+        "creator": p.creator,
+        "label_hash": p.label_hash,
+        "cap_wei": p.cap_wei,
+        "total_deposited_wei": p.total_deposited_wei,
+        "total_reward_wei": p.total_reward_wei,
+        "unlock_block": p.unlock_block,
+        "created_at_block": p.created_at_block,
+        "max_per_fren_wei": p.max_per_fren_wei,
+        "unlocked": p.unlocked,
+        "exists": p.exists,
+        "remaining_cap": p.remaining_cap(),
+        "fill_basis_points": p.fill_basis_points(),
+        "is_full": p.is_full(),
+    }
+
+
+def engine_pool_list(engine: MonguLaunchpadEngine, offset: int = 0, limit: int = MGU_VIEW_BATCH_MAX) -> List[Dict[str, Any]]:
+    ids = engine.get_pool_ids()
+    if offset >= len(ids):
+        return []
+    end = min(offset + limit, len(ids))
