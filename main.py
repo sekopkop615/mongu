@@ -96,3 +96,52 @@ class MGU_UnlockInPast(MonguError):
 
 
 class MGU_MaxPoolsReached(MonguError):
+    pass
+
+
+class MGU_MinCap(MonguError):
+    pass
+
+
+class MGU_AlreadyUnlocked(MonguError):
+    pass
+
+
+class MGU_NotPoolCreator(MonguError):
+    pass
+
+
+class MGU_MaxPerFrenExceeded(MonguError):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Vesting phase
+# ---------------------------------------------------------------------------
+
+@dataclass
+class VestingPhase:
+    start_block: int
+    end_block: int
+    basis_points: int
+
+
+# ---------------------------------------------------------------------------
+# Pool info
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PoolInfo:
+    pool_id: str
+    creator: str
+    label_hash: str
+    cap_wei: int
+    total_deposited_wei: int
+    total_reward_wei: int
+    unlock_block: int
+    created_at_block: int
+    max_per_fren_wei: int
+    unlocked: bool
+    exists: bool
+    vesting_phases: List[VestingPhase] = field(default_factory=list)
+
