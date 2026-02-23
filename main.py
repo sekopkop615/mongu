@@ -733,3 +733,52 @@ def paginate_pool_ids(engine: MonguLaunchpadEngine, offset: int, limit: int) -> 
     ids = engine.get_pool_ids()
     if offset >= len(ids):
         return []
+    limit = min(limit, MGU_VIEW_BATCH_MAX)
+    end = min(offset + limit, len(ids))
+    return ids[offset:end]
+
+
+def paginate_fren_pool_ids(engine: MonguLaunchpadEngine, fren: str, offset: int, limit: int) -> List[str]:
+    ids = engine.get_fren_pool_ids(fren)
+    if offset >= len(ids):
+        return []
+    limit = min(limit, MGU_VIEW_BATCH_MAX)
+    end = min(offset + limit, len(ids))
+    return ids[offset:end]
+
+
+# ---------------------------------------------------------------------------
+# Reward computation (exact mirror of Solidity)
+# ---------------------------------------------------------------------------
+
+def compute_reward_share_view(
+    total_deposited: int,
+    total_reward: int,
+    fren_share: int,
+    protocol_fee_basis_points: int,
+) -> Tuple[int, int, int]:
+    if total_deposited == 0:
+        return (0, 0, 0)
+    reward_share_wei = (total_reward * fren_share) // total_deposited
+    fee_wei = (reward_share_wei * protocol_fee_basis_points) // MGU_BASIS_DENOM
+    net_wei = reward_share_wei - fee_wei
+    return (reward_share_wei, fee_wei, net_wei)
+
+
+def compute_pending_for_pools(
+    engine: MonguLaunchpadEngine,
+    pool_ids: List[str],
+    fren: str,
+) -> List[int]:
+    return [engine.pending_reward(pid, fren) for pid in pool_ids]
+
+
+# ---------------------------------------------------------------------------
+# Config and defaults
+# ---------------------------------------------------------------------------
+
+DEFAULT_PAD_KEEPER_PLACEHOLDER = "0x0000000000000000000000000000000000000001"
+DEFAULT_TREASURY_PLACEHOLDER = "0x0000000000000000000000000000000000000002"
+
+
+def default_engine_for_tests() -> MonguLaunchpadEngine:
