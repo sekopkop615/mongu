@@ -292,3 +292,52 @@ class MonguLaunchpadEngine:
             return 0
         share = self._fren_share_wei.get((pool_id, fren), 0)
         if share == 0:
+            return 0
+        total_dep = p.total_deposited_wei
+        total_reward = p.total_reward_wei
+        reward_share = (total_reward * share) // total_dep if total_dep else 0
+        fee = (reward_share * self.protocol_fee_basis_points) // MGU_BASIS_DENOM
+        net = reward_share - fee
+        already_claimed = self._fren_claimed_wei.get((pool_id, fren), 0)
+        return max(0, net - already_claimed)
+
+    def claim(self, pool_id: str, fren: str) -> int:
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        p = self._pools[pool_id]
+        if not p.unlocked:
+            raise MGU_PoolStillLocked()
+        share = self._fren_share_wei.get((pool_id, fren), 0)
+        if share == 0:
+            raise MGU_NoShares()
+        total_dep = p.total_deposited_wei
+        total_reward = p.total_reward_wei
+        reward_share = (total_reward * share) // total_dep if total_dep else 0
+        fee = (reward_share * self.protocol_fee_basis_points) // MGU_BASIS_DENOM
+        net = reward_share - fee
+        key = (pool_id, fren)
+        already_claimed = self._fren_claimed_wei.get(key, 0)
+        to_send = max(0, net - already_claimed)
+        if to_send > 0:
+            self._fren_claimed_wei[key] = net
+            self._treasury_balance += (reward_share - net)
+        return to_send
+
+    def get_pool(self, pool_id: str) -> Optional[PoolInfo]:
+        return self._pools.get(pool_id)
+
+    def get_fren_share(self, pool_id: str, fren: str) -> Tuple[int, int]:
+        share = self._fren_share_wei.get((pool_id, fren), 0)
+        claimed = self._fren_claimed_wei.get((pool_id, fren), 0)
+        return (share, claimed)
+
+    def get_pool_fren_count(self, pool_id: str) -> int:
+        return len(self._pool_frens.get(pool_id, []))
+
+    def get_pool_ids(self) -> List[str]:
+        return list(self._pool_ids)
+
+    def get_fren_pool_ids(self, fren: str) -> List[str]:
+        return list(self._fren_pool_ids.get(fren, []))
+
+    def treasury_balance(self) -> int:
