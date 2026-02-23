@@ -488,3 +488,52 @@ def get_fren_stats(engine: MonguLaunchpadEngine, fren: str) -> Dict[str, Any]:
 def ape_in_batch(
     engine: MonguLaunchpadEngine,
     pool_id: str,
+    frens: List[str],
+    amounts_wei: List[int],
+) -> None:
+    if len(frens) != len(amounts_wei):
+        raise MGU_ArrayLengthMismatch()
+    if len(frens) > MGU_BATCH_LIMIT:
+        raise MGU_BatchTooLarge()
+    total_new = sum(amounts_wei)
+    p = engine.get_pool(pool_id)
+    if not p:
+        raise MGU_PoolNotFound()
+    if p.total_deposited_wei + total_new > p.cap_wei:
+        raise MGU_CapExceeded()
+    for i, fren in enumerate(frens):
+        if amounts_wei[i] > 0 and fren:
+            engine.ape_in(pool_id, fren, amounts_wei[i])
+
+
+def create_pool_batch(
+    engine: MonguLaunchpadEngine,
+    pool_ids: List[str],
+    label_hashes: List[str],
+    cap_wei_arr: List[int],
+    unlock_block_arr: List[int],
+    caller: str,
+) -> None:
+    if not (len(pool_ids) == len(label_hashes) == len(cap_wei_arr) == len(unlock_block_arr)):
+        raise MGU_ArrayLengthMismatch()
+    if len(pool_ids) > MGU_BATCH_LIMIT:
+        raise MGU_BatchTooLarge()
+    for i in range(len(pool_ids)):
+        engine.create_pool(
+            pool_ids[i],
+            label_hashes[i],
+            cap_wei_arr[i],
+            unlock_block_arr[i],
+            caller,
+        )
+
+
+# ---------------------------------------------------------------------------
+# CLI / script entry (optional)
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    pad_keeper = "0x" + secrets.token_hex(20)
+    treasury = "0x" + secrets.token_hex(20)
+    engine = MonguLaunchpadEngine(
+        pad_keeper=pad_keeper,
