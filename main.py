@@ -194,3 +194,52 @@ class MonguLaunchpadEngine:
         self._pool_frens: Dict[str, List[str]] = {}
         self._fren_pool_ids: Dict[str, List[str]] = {}
         self._treasury_balance = 0
+        self._total_deposited_across_pools = 0
+        self._total_reward_across_pools = 0
+        self._paused = False
+
+    def set_block(self, block: int) -> None:
+        self._current_block = block
+
+    def get_block(self) -> int:
+        return self._current_block
+
+    def create_pool(
+        self,
+        pool_id: str,
+        label_hash: str,
+        cap_wei: int,
+        unlock_block: int,
+        caller: str,
+    ) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        if not pool_id:
+            raise MGU_ZeroPoolId()
+        if pool_id in self._pools:
+            raise MGU_PoolAlreadyExists()
+        if len(self._pool_ids) >= MGU_MAX_POOLS:
+            raise MGU_MaxPoolsReached()
+        if cap_wei < MGU_MIN_POOL_CAP_WEI:
+            raise MGU_MinCap()
+        if unlock_block <= self._current_block:
+            raise MGU_UnlockInPast()
+        max_per_fren = 2**256 - 1  # type(uint256).max
+        self._pools[pool_id] = PoolInfo(
+            pool_id=pool_id,
+            creator=caller,
+            label_hash=label_hash,
+            cap_wei=cap_wei,
+            total_deposited_wei=0,
+            total_reward_wei=0,
+            unlock_block=unlock_block,
+            created_at_block=self._current_block,
+            max_per_fren_wei=max_per_fren,
+            unlocked=False,
+            exists=True,
+        )
+        self._pool_ids.append(pool_id)
+        self._pool_frens[pool_id] = []
+
+    def ape_in(self, pool_id: str, fren: str, amount_wei: int) -> None:
+        if self._paused:
