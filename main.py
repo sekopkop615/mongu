@@ -586,3 +586,52 @@ def engine_pool_list(engine: MonguLaunchpadEngine, offset: int = 0, limit: int =
     if offset >= len(ids):
         return []
     end = min(offset + limit, len(ids))
+    out = []
+    for i in range(offset, end):
+        p = engine.get_pool(ids[i])
+        if p:
+            out.append(pool_info_to_dict(p))
+    return out
+
+
+def engine_pool_fren_shares(engine: MonguLaunchpadEngine, pool_id: str, offset: int = 0, limit: int = MGU_VIEW_BATCH_MAX) -> Tuple[List[str], List[int]]:
+    p = engine.get_pool(pool_id)
+    if not p:
+        return ([], [])
+    frens = getattr(engine, "_pool_frens", {}).get(pool_id, [])
+    if offset >= len(frens):
+        return ([], [])
+    end = min(offset + limit, len(frens))
+    frens_out = []
+    shares_out = []
+    for i in range(offset, end):
+        fren = frens[i]
+        share = engine.get_fren_share(pool_id, fren)[0]
+        frens_out.append(fren)
+        shares_out.append(share)
+    return (frens_out, shares_out)
+
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
+
+def validate_address(addr: str) -> bool:
+    if not addr or not isinstance(addr, str):
+        return False
+    addr = addr.strip()
+    if addr.startswith("0x"):
+        addr = addr[2:]
+    return len(addr) == 40 and all(c in "0123456789abcdefABCDEF" for c in addr)
+
+
+def validate_pool_id(pid: str) -> bool:
+    return isinstance(pid, str) and len(pid) == 64 and all(c in "0123456789abcdef" for c in pid)
+
+
+def validate_wei_amount(amount: int) -> bool:
+    return isinstance(amount, int) and amount >= 0
+
+
+# ---------------------------------------------------------------------------
+# Simulation runner — multi-step scenarios
