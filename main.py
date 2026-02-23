@@ -341,3 +341,52 @@ class MonguLaunchpadEngine:
         return list(self._fren_pool_ids.get(fren, []))
 
     def treasury_balance(self) -> int:
+        return self._treasury_balance
+
+    def total_deposited_across_pools(self) -> int:
+        return self._total_deposited_across_pools
+
+    def total_reward_across_pools(self) -> int:
+        return self._total_reward_across_pools
+
+    def set_protocol_fee_basis(self, basis_points: int, caller: str) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        if basis_points > MGU_MAX_FEE_BASIS:
+            raise MGU_FeeBasisTooHigh()
+        self.protocol_fee_basis_points = basis_points
+
+    def raise_pool_cap(self, pool_id: str, new_cap_wei: int, caller: str) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        p = self._pools[pool_id]
+        if new_cap_wei <= p.cap_wei:
+            raise MGU_NewCapLower()
+        p.cap_wei = new_cap_wei
+
+    def set_pool_max_per_fren(self, pool_id: str, max_per_fren_wei: int, caller: str) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        if pool_id not in self._pools:
+            raise MGU_PoolNotFound()
+        self._pools[pool_id].max_per_fren_wei = max_per_fren_wei
+
+    def pause(self, caller: str) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        self._paused = True
+
+    def unpause(self, caller: str) -> None:
+        if caller != self.pad_keeper:
+            raise MGU_NotPadKeeper()
+        self._paused = False
+
+    def is_paused(self) -> bool:
+        return self._paused
+
+
+# ---------------------------------------------------------------------------
+# MonguLaunchpadMath — mirror of Solidity library
+# ---------------------------------------------------------------------------
