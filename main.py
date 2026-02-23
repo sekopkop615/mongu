@@ -831,3 +831,52 @@ def get_pool_summary_dict(engine: MonguLaunchpadEngine, pool_id: str) -> Dict[st
 
 # ---------------------------------------------------------------------------
 # Batch get fren shares and claimed for multiple pools
+# ---------------------------------------------------------------------------
+
+def get_fren_shares_and_claimed_for_pools(
+    engine: MonguLaunchpadEngine,
+    pool_ids: List[str],
+    fren: str,
+) -> Tuple[List[int], List[int]]:
+    shares = []
+    claimed = []
+    for pid in pool_ids:
+        s, c = engine.get_fren_share(pid, fren)
+        shares.append(s)
+        claimed.append(c)
+    return (shares, claimed)
+
+
+# ---------------------------------------------------------------------------
+# Is pool unlockable (block >= unlock_block and not yet unlocked)
+# ---------------------------------------------------------------------------
+
+def is_pool_unlockable(engine: MonguLaunchpadEngine, pool_id: str) -> bool:
+    p = engine.get_pool(pool_id)
+    if not p or p.unlocked:
+        return False
+    return engine.get_block() >= p.unlock_block
+
+
+# ---------------------------------------------------------------------------
+# Blocks until unlock
+# ---------------------------------------------------------------------------
+
+def blocks_until_unlock(engine: MonguLaunchpadEngine, pool_id: str) -> int:
+    p = engine.get_pool(pool_id)
+    if not p or p.unlocked or engine.get_block() >= p.unlock_block:
+        return 0
+    return p.unlock_block - engine.get_block()
+
+
+# ---------------------------------------------------------------------------
+# Protocol fee for amount (view)
+# ---------------------------------------------------------------------------
+
+def protocol_fee_for_amount(engine: MonguLaunchpadEngine, reward_share_wei: int) -> int:
+    return (reward_share_wei * engine.protocol_fee_basis_points) // MGU_BASIS_DENOM
+
+
+def net_after_fee_for_amount(engine: MonguLaunchpadEngine, reward_share_wei: int) -> int:
+    fee = (reward_share_wei * engine.protocol_fee_basis_points) // MGU_BASIS_DENOM
+    return reward_share_wei - fee
