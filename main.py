@@ -782,3 +782,52 @@ DEFAULT_TREASURY_PLACEHOLDER = "0x0000000000000000000000000000000000000002"
 
 
 def default_engine_for_tests() -> MonguLaunchpadEngine:
+    return MonguLaunchpadEngine(
+        pad_keeper=DEFAULT_PAD_KEEPER_PLACEHOLDER,
+        treasury=DEFAULT_TREASURY_PLACEHOLDER,
+        deploy_block=0,
+        protocol_fee_basis_points=250,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Hex and bytes32 helpers (EVM compatibility)
+# ---------------------------------------------------------------------------
+
+def to_bytes32_hex(s: str) -> str:
+    h = hashlib.sha256(s.encode()).hexdigest()
+    return "0x" + h if not h.startswith("0x") else h
+
+
+def from_wei(wei: int) -> float:
+    return wei / 10**18
+
+
+def to_wei(eth: float) -> int:
+    return int(eth * 10**18)
+
+
+# ---------------------------------------------------------------------------
+# Extended pool summary for UI
+# ---------------------------------------------------------------------------
+
+def get_pool_summary_dict(engine: MonguLaunchpadEngine, pool_id: str) -> Dict[str, Any]:
+    p = engine.get_pool(pool_id)
+    if not p:
+        return {}
+    return {
+        "pool_id": pool_id,
+        "cap_wei": p.cap_wei,
+        "deposited_wei": p.total_deposited_wei,
+        "reward_wei": p.total_reward_wei,
+        "unlock_block": p.unlock_block,
+        "fren_count": engine.get_pool_fren_count(pool_id),
+        "unlocked": p.unlocked,
+        "exists": p.exists,
+        "remaining_cap": p.remaining_cap(),
+        "fill_basis_points": p.fill_basis_points(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Batch get fren shares and claimed for multiple pools
